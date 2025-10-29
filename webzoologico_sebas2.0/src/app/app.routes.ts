@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
-import { Prueba } from './components/prueba/prueba';
+import { Micomponente } from './components/micomponente/micomponente';
+
 
 export const routes: Routes = [
-    {path:"inicio",component: Prueba}
+    {path:"inicio",component: Micomponente}
 ];
