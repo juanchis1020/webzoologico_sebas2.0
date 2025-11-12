@@ -1,39 +1,52 @@
-import { Component } from '@angular/core';
+import { Component, NgZone } from '@angular/core';
 import { AnimalService } from '../../services/animal-service';
 import { ToastrService } from 'ngx-toastr';
 import { take } from 'rxjs';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+
 
 
 @Component({
   selector: 'app-animal-component',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './animal-component.html',
   styleUrl: './animal-component.css'
 })
 export class AnimalComponent {
-  animalList:any= [];
+  animalList: any = [];
   animalForm: FormGroup | any;
+  idAnimal: any;
+  editableAnimal: boolean = false;
 
   constructor(private animalService:
-  AnimalService,
-    private formBuilder: FormBuilder, 
+    AnimalService,
+    private formBuilder: FormBuilder,
     private router: Router,
-    private toastr: ToastrService){
+    private toastr: ToastrService,
+    private ngZone: NgZone) {
 
-    }
- 
+  }
+
+  simularCambioExterno() {
+    // 🚨 Usamos ngZone.run() para asegurar que el cambio se detecte.
+    this.ngZone.run(() => {
+      this.editableAnimal = true;
+      console.log('Editable activado dentro de NgZone:', this.editableAnimal);
+    });
+  }
+
   getAllAnimals() {
-      this.animalService.getAllAnimalsData().subscribe((data: {}) => {
-      this.animalList=data;
+    this.animalService.getAllAnimalsData().subscribe((data: {}) => {
+      this.animalList = data;
     });
   }
   ngOnInit() {
     this.animalForm = this.formBuilder.group({
-      nombre:'',
-      edad:0,
-      tipo:''
+      nombre: '',
+      edad: 0,
+      tipo: ''
     });
     this.getAllAnimals();
   }
@@ -42,16 +55,61 @@ export class AnimalComponent {
       .onTap
       .pipe(take(1))
       .subscribe(() => window.location.reload());
-  } 
+  }
   newAnimalEntry() {
     this.animalService.newAnimal(this.animalForm.value).subscribe(
       () => {
         //Redirigiendo a la ruta actual /inicio y recargando la ventana
         this.router.navigate(['/inicio'])
-        .then(()=> {
-          this.newMessage('Registro exitoso');
-        })
+          .then(() => {
+            this.newMessage('Registro exitoso');
+          })
       }
     );
   }
+
+  updateAnimalEntry() {
+    //Removiendo valores vacios del formulario de actualización
+    for (let key in this.animalForm.value) {
+      if (this.animalForm.value[key] === '') {
+        this.animalForm.removeControl(key);
+      }
+    }
+    this.animalService.updateAnimal(this.idAnimal, this.animalForm.value).subscribe(
+      () => {
+        //Enviando mensaje de confirmación
+        this.newMessage("Animal editado");
+      }
+    );
+  }
+  toggleEditAnimal(id: any) {
+    this.idAnimal = id;
+    console.log(this.idAnimal)
+    console.log(this.editableAnimal)
+    this.animalService.getOneAnimal(id).subscribe(
+      data => {
+        this.animalForm.setValue({
+          nombre: data.nombre,
+          edad: data.edad,
+          tipo: data.tipo,
+        });
+
+        console.log("data nombre: " + data.nombre)
+      }
+
+    );
+    this.simularCambioExterno();
+    //this.editableAnimal = !this.editableAnimal;
+    console.log(this.editableAnimal)
+  }
+  deleteAnimalEntry(id: any) {
+    console.log(id)
+    this.animalService.deleteAnimal(id).subscribe(
+      () => {
+        //Enviando mensaje de confirmación
+        this.newMessage("Animal eliminado");
+      }
+    );
+  }
+
 }
